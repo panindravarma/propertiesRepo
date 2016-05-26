@@ -1,0 +1,187 @@
+declare namespace ns3 = "http://xml.comcast.com/customer/types";
+declare namespace ns4 = "http://xml.comcast.com/customer/services";
+declare namespace ns1 = "http://xml.comcast.com/common/types";
+declare namespace ns0 = "http://xml.comcast.com/common/types";
+declare namespace typ="http://xml.comcast.com/types";
+declare namespace cod="http://www.comcast.com/ordercare/cod";
+declare namespace ns5 = "http://xml.comcast.com/provisioning_/types";
+declare namespace ns6 = "http://xml.comcast.com/provisioning_/services";
+declare namespace ns7="http://xml.comcast.com/provisioninghsd/services";
+declare namespace ns9="http://www.w3.org/2001/XMLSchema-instance";
+declare namespace soapenv="http://schemas.xmlsoap.org/soap/envelope";
+
+declare namespace ser="http://xml.comcast.com/cdv/services"; 
+declare namespace typ1="http://xml.comcast.com/cdv/types";
+
+declare variable $submitProvisioning := (//*[local-name()='SubmitProvisioning']);
+declare variable $processProvisioningRequest := (//*[local-name()='ProcessProvisioningRequest']);
+declare variable $submitProvisioningResponse := (//*[local-name()='SubmitProvisioningResponse']);
+declare variable $responseHeader := (//*[local-name()='responseHeader']); 
+declare variable $activateServiceFeature :=(//*[local-name()='activateServiceFeature']);
+declare variable $disconnectService :=(//*[local-name()='disconnectService']);
+declare variable $getCustomerResponse :=(//*[local-name()='getCustomerResponse']);
+declare variable $setOrderStatus :=(//*[local-name()='setOrderStatus']);
+declare variable $commonOrderResponse :=(//*[local-name()='commonOrderResponse']);
+declare variable $fault :=(//*[local-name()='Fault']);
+declare variable $CustomerReq:=$getCustomerResponse/ns4:getCustomerReturn/ns3:customerProfile/ns3:customerServiceRequest;
+declare variable $Customerprofile:=$getCustomerResponse/ns4:getCustomerReturn/ns3:customerProfile;
+declare variable $serviceRequestCustomerResource:= $CustomerReq/ns1:serviceRequestCustomerServiceResource/ns1:serviceRequestCustomerResource;
+     
+     
+declare function local:process($po as element(ns6:SubmitProvisioning),$xx,$bb)  {
+            let $xx1:=for $seq in (1 to fn:count(local:insert($po,$xx)))
+            return
+             $seq[fn:deep-equal(local:insert($po,$xx)[$seq],$xx)]
+             return
+            if($xx1[1]=$bb)then true()else false()    
+};
+
+
+
+declare function local:insert($po as element(ns6:SubmitProvisioning),$xx)  {
+for $serviceRequestCustomerService at $i in $po/ns6:ProvisioningReqType/ns5:serviceRequestCustomerService/ns5:serviceRequestCustomerService
+return
+ if(boolean(data($serviceRequestCustomerService/ns0:serviceRequestCustomerServiceEquipment/ns0:serviceRequestCustomerServiceEquipment[1]/ns0:componentAddress/ns0:address)))then
+lower-case(data($serviceRequestCustomerService/ns0:serviceRequestCustomerServiceEquipment/ns0:serviceRequestCustomerServiceEquipment[1]/ns0:componentAddress/ns0:address))
+ else
+ data("null")
+      
+};
+     
+     
+     
+     
+     
+     
+     
+     
+     
+declare function local:isTransfer($po as element(ns6:SubmitProvisioning) )  {
+ if(empty(data($po/ns6:ProvisioningReqType/ns5:provisioningAttributes/ns5:transferAccount)=true()))then
+ true()
+ else
+ false()
+
+
+};
+
+declare function local:isTOPDOWN($po as element(ns6:SubmitProvisioning) )  {
+for $serviceRequestCustomerService at $i in $po/ns6:ProvisioningReqType/ns5:serviceRequestCustomerService/ns5:serviceRequestCustomerService
+where ((data($serviceRequestCustomerService/ns1:lineOfBusiness) = "VO_IP") and (data($serviceRequestCustomerService/ns1:productAction)= "ADD" and (data($serviceRequestCustomerService/ns1:customerProductStatus)= "PENDING")) or (data($serviceRequestCustomerService/ns1:productAction)= "CHANGE" and data($serviceRequestCustomerService/ns0:serviceRequestCustomerServiceEquipment/ns0:serviceRequestCustomerServiceEquipment[1]/ns1:action)="ADD" ) )
+return
+ number(data(0) + number(1))
+
+};
+
+declare function local:getSrcApects-value($srcs as element(ns5:serviceRequestCustomerService),$aspectNumber )  {
+ for $serviceRequestCustomerProductConfiguration in $srcs/ns1:customerProductConfiguration/ns1:serviceRequestCustomerProductConfiguration where data($serviceRequestCustomerProductConfiguration/ns1:aspectNumber)=$aspectNumber 
+   return data($serviceRequestCustomerProductConfiguration/ns1:aspectValue)
+ };
+ 
+ declare function local:getSrcApectsRes-value($srcsRes as element(ns1:serviceRequestCustomerResource),$aspectNumber )  {
+ for $serviceRequestCustomerProductConfiguration in $srcsRes/ns1:customerProductConfiguration/ns1:serviceRequestCustomerProductConfiguration where data($serviceRequestCustomerProductConfiguration/ns1:aspectNumber)=$aspectNumber 
+   return data($serviceRequestCustomerProductConfiguration/ns1:aspectValue)
+ };
+
+declare function local:getSrcApects-value1($srcs as element(ns3:serviceRequestCustomerService),$aspectNumber )  {
+ for $serviceRequestCustomerProductConfiguration in $srcs/ns1:customerProductConfiguration/ns1:serviceRequestCustomerProductConfiguration where data($serviceRequestCustomerProductConfiguration/ns1:aspectNumber)=$aspectNumber 
+   return data($serviceRequestCustomerProductConfiguration/ns1:aspectValue)
+ };
+ if(boolean($getCustomerResponse))then
+  <ser:ImsCdvActivation>
+         <ser:ImsCdvActivationRequest>
+           <typ1:accountNumber>{data($CustomerReq/ns3:serviceableLocations/ns3:serviceableLocation/ns3:legacyAccountID)}</typ1:accountNumber>
+            <typ1:subscriberName>{data($Customerprofile/ns3:customer/ns3:personName/ns1:firstName)}{data(" ")}{data($Customerprofile/ns3:customer/ns3:personName/ns1:lastName)}</typ1:subscriberName>
+            <typ1:houseKey>{data($CustomerReq/ns3:serviceableLocations/ns3:serviceableLocation/ns3:locationID)}</typ1:houseKey>
+            <typ1:sourceContext>TOPDOWN</typ1:sourceContext>
+            <typ1:workOrderNumber>{data($submitProvisioning/ns6:ProvisioningReqType/ns5:serviceRequestID)}</typ1:workOrderNumber>
+              {
+              for $serviceRequestCustomerService at $i in $CustomerReq/ns3:serviceRequestCustomerServices/ns3:serviceRequestCustomerService,
+           $serviceRequestCustomerEquipment in $CustomerReq/ns3:serviceRequestCustomerEquipments/ns3:serviceRequestCustomerEquipment,
+             $componentAddress at $j in $serviceRequestCustomerEquipment/ns1:serviceRequestEquipment/ns1:componentAddress/ns0:componentAddress
+            where  data($serviceRequestCustomerService/ns1:lineOfBusiness)="VO_IP" and lower-case(data($serviceRequestCustomerService/ns1:serviceRequestCustomerServiceEquipment/ns1:serviceRequestCustomerServiceEquipment[1]/ns1:componentAddress/ns0:address))=lower-case(data($componentAddress/ns0:address))
+             return
+              <typ1:deviceDetails>
+               <typ1:eDvaMake>{data($serviceRequestCustomerEquipment/ns0:serviceRequestEquipment/ns0:make)}</typ1:eDvaMake>
+               <typ1:eDvaModel>{data($serviceRequestCustomerEquipment/ns0:serviceRequestEquipment/ns0:model)}</typ1:eDvaModel>
+               <typ1:eDvaMacAddress>{data(data($serviceRequestCustomerService/ns1:serviceRequestCustomerServiceEquipment/ns1:serviceRequestCustomerServiceEquipment[1]/ns1:componentAddress/ns0:address))}</typ1:eDvaMacAddress>
+              </typ1:deviceDetails>
+            
+           }
+            <typ1:tnList>
+            {
+            for $serviceRequestCustomerService at $i in $CustomerReq/ns3:serviceRequestCustomerServices/ns3:serviceRequestCustomerService,
+           $serviceRequestCustomerResource in $serviceRequestCustomerService/ns1:serviceRequestCustomerServiceResource/ns1:serviceRequestCustomerResource
+        where (data($serviceRequestCustomerService/ns0:customerProductStatus)="PENDING" and data($serviceRequestCustomerService/ns1:lineOfBusiness)="VO_IP"
+        and boolean(data($serviceRequestCustomerService/ns0:serviceRequestCustomerServiceEquipment/ns0:serviceRequestCustomerServiceEquipment[1]))=true() and local:getSrcApectsRes-value($serviceRequestCustomerResource,"5032")=false() )
+        
+		    return
+             <typ1:imsCdvActivateTnRequestType>
+             <typ1:telephoneNumber>{
+			      data($serviceRequestCustomerResource/ns1:serviceRequestResource/ns1:resourceAddress)
+		  			}
+		  			</typ1:telephoneNumber>
+	              <typ1:portedFlag>{data("F")}</typ1:portedFlag>
+                <typ1:subscriberID>{data($serviceRequestCustomerService/ns1:provisioningReference)}</typ1:subscriberID>
+                <typ1:tnPort>{replace(data(local:getSrcApects-value1($serviceRequestCustomerService,"5031" )),'aaln/','')}</typ1:tnPort>
+         
+             </typ1:imsCdvActivateTnRequestType>
+             }
+            </typ1:tnList>
+         </ser:ImsCdvActivationRequest>
+      </ser:ImsCdvActivation>
+
+else if(boolean($submitProvisioning) and local:isTOPDOWN($submitProvisioning)[1](:and local:isTOPDOWN($submitProvisioning):))then
+ <ser:ImsCdvActivation>
+         <ser:ImsCdvActivationRequest>
+            <typ1:accountNumber>{data($submitProvisioning/ns6:ProvisioningReqType/ns5:accountNumber)}</typ1:accountNumber>
+            <typ1:subscriberName>{data($submitProvisioning/ns6:ProvisioningReqType/ns5:customerName/ns1:firstName)}{data("")} {data($submitProvisioning/ns6:ProvisioningReqType/ns5:customerName/ns1:lastName)}</typ1:subscriberName>
+            <typ1:houseKey>{data($submitProvisioning/ns6:ProvisioningReqType/ns5:provisioningAttributes/ns5:housekey)}</typ1:houseKey>
+            <typ1:sourceContext>TOPDOWN</typ1:sourceContext>
+            <typ1:workOrderNumber>{data($submitProvisioning/ns6:ProvisioningReqType/ns5:serviceRequestID)}</typ1:workOrderNumber>
+             {
+           for $serviceRequestCustomerService at $i in $submitProvisioning/ns6:ProvisioningReqType/ns5:serviceRequestCustomerService/ns5:serviceRequestCustomerService,
+             $serviceRequestCustomerEquipment in $submitProvisioning/ns6:ProvisioningReqType/ns5:serviceRequestCustomerEquipment/ns5:serviceRequestCustomerEquipment,
+             $componentAddress at $j in $serviceRequestCustomerEquipment/ns1:serviceRequestEquipment/ns1:componentAddress/ns0:componentAddress
+            where  (data($serviceRequestCustomerService/ns1:lineOfBusiness)="VO_IP" and (lower-case(data($serviceRequestCustomerService/ns1:serviceRequestCustomerServiceEquipment/ns1:serviceRequestCustomerServiceEquipment[1]/ns1:componentAddress/ns0:address))= lower-case(data($componentAddress/ns0:address))))
+             return
+               if(local:process($submitProvisioning,lower-case(data($serviceRequestCustomerService/ns0:serviceRequestCustomerServiceEquipment/ns0:serviceRequestCustomerServiceEquipment[1]/ns0:componentAddress/ns0:address)),$i))then
+               <typ1:deviceDetails>
+               <typ1:eDvaMake>{data($serviceRequestCustomerEquipment/ns0:serviceRequestEquipment/ns0:make)}</typ1:eDvaMake>
+               <typ1:eDvaModel>{data($serviceRequestCustomerEquipment/ns0:serviceRequestEquipment/ns0:model)}</typ1:eDvaModel>
+               <typ1:eDvaMacAddress>{data(data($serviceRequestCustomerService/ns1:serviceRequestCustomerServiceEquipment/ns1:serviceRequestCustomerServiceEquipment[1]/ns1:componentAddress/ns0:address))}</typ1:eDvaMacAddress>
+              </typ1:deviceDetails>
+            
+              else()
+           }
+          <typ1:tnList>        
+   {
+  for $serviceRequestCustomerService at $i in $submitProvisioning/ns6:ProvisioningReqType/ns5:serviceRequestCustomerService/ns5:serviceRequestCustomerService,
+     $serviceRequestCustomerResource in $serviceRequestCustomerService/ns1:serviceRequestCustomerServiceResource/ns1:serviceRequestCustomerResource
+     where (data($serviceRequestCustomerResource/ns1:productAction)="ADD" or (data($serviceRequestCustomerResource/ns1:productAction)="NOCHANGE") and (data($serviceRequestCustomerService/ns1:productAction)="CHANGE") and data($serviceRequestCustomerService/ns0:serviceRequestCustomerServiceEquipment/ns0:serviceRequestCustomerServiceEquipment[1]/ns1:action)="ADD") and data($serviceRequestCustomerService/ns1:lineOfBusiness)="VO_IP" and
+        boolean(data($serviceRequestCustomerService/ns0:serviceRequestCustomerServiceEquipment/ns0:serviceRequestCustomerServiceEquipment[1]))=true() and local:getSrcApectsRes-value($serviceRequestCustomerResource,"5032")=false() and data($submitProvisioning/ns6:ProvisioningReqType/ns5:provisioningAttributes/ns5:cancelFlag)!=true() and (not(boolean(data($submitProvisioning/ns6:ProvisioningReqType/ns5:provisioningAttributes/ns5:transferAccount))) or (local:getSrcApects-value($serviceRequestCustomerService,"2000")='true'))
+         
+  		    return
+               <typ1:imsCdvActivateTnRequestType>
+                <typ1:telephoneNumber>{
+  			      data($serviceRequestCustomerResource/ns1:serviceRequestResource/ns1:resourceAddress)
+  		  			}
+  		  			</typ1:telephoneNumber>
+  	            <typ1:portedFlag>{data("F")}</typ1:portedFlag>
+                  <typ1:subscriberID>{data($serviceRequestCustomerService/ns1:provisioningReference)}</typ1:subscriberID>
+                   <typ1:tnPort>{replace(data(local:getSrcApects-value($serviceRequestCustomerService,"5031" )),'aaln/','')}</typ1:tnPort>
+           
+               </typ1:imsCdvActivateTnRequestType>
+               }
+              </typ1:tnList>
+           </ser:ImsCdvActivationRequest>
+      </ser:ImsCdvActivation>
+      
+
+else()
+      
+
+
+
+
+
